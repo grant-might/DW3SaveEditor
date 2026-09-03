@@ -4,7 +4,7 @@ Edit your Digimon World 3 (PlayStation 1) memory card saves from your PC. No con
 
 Works with **USA and EUR** saves. Loads `.mcr`, `.mcd`, `.mc`, `.bin`, `.gme` (DexDrive), `.vgs`, and `.vmp` card images. Every edit goes through a real checksum recompute, so the game reads the card as valid. A backup of your original file is created automatically before the first save, and nothing is written to disk until you press Save.
 
-![The main slot editor with a save loaded. Shows party Digimon (Agumon, Veemon, Guilmon at Lv 99), the partner Agumon, 9,999,999 Bits, and play time, plus the save slots sidebar.](images/slot-editor.png)
+![The main slot editor with a save loaded. Shows party Digimon (Agumon, Veemon, Guilmon at Lv 99), the partner Agumon, 9,999,999 Bits, and play time, plus the save slots sidebar.](https://github.com/user-attachments/assets/6d5962a6-80d8-4be6-b55b-629deeeeee45)
 
 ## What it can do
 
@@ -19,16 +19,16 @@ Works with **USA and EUR** saves. Loads `.mcr`, `.mcd`, `.mc`, `.bin`, `.gme` (D
 - **Card Packs.** All 35 booster packs with quantities from 0 to 99.
 - **Important Items.** The 48 key and important item flags in their in-game screen order.
 
-![Item inventory with 48 of 48 items shown. Power Charge (59) is selected with quantity controls at the bottom.](images/items.png)
+![Item inventory with 48 of 48 items shown. Power Charge (59) is selected with quantity controls at the bottom.](https://github.com/user-attachments/assets/228b8d2e-1e44-41af-ac98-55705103fb26)
 
 ### Partners and collection
 - **Digimon.** Per-Digimon stats for all 8 roster partners: HP, MP, level, EXP, and stats, verified byte exact against a live card.
 - **Digivolution.** The full digivolution tree for each Digimon. Tick a form as earned and set its DV level, the in-game value used to unlock evolutions. When you set a form's DV, the technique record is written too, so the Digimon actually knows its moves in-game, not just on paper. A one click "Max earned DV to 99" handles the whole tree.
 - **Cards.** The complete 314 card collection with card art. Set copies from 0 to 9 for every card, individually or all at once.
 
-![Digivolution screen for Agumon. All forms (Greymon through Paildramon) show earned checkboxes and DV level 99, with the rookie sprite row on top.](images/digivolution.png)
+![Digivolution screen for Agumon. All forms (Greymon through Paildramon) show earned checkboxes and DV level 99, with the rookie sprite row on top.](https://github.com/user-attachments/assets/4edf189f-6560-4c8d-bbfb-21aeb77fe0cd)
 
-![Card collection showing card art and copy counts. Sacred Spear (8 copies) is selected.](images/cards.png)
+![Card collection showing card art and copy counts. Sacred Spear (8 copies) is selected.](https://github.com/user-attachments/assets/b2ed7627-d182-4db2-8fca-3ab3a1819430)
 
 ### Tools
 - **Field Locator.** A read-only tool that compares two saves made at different points in the game and shows exactly which bytes changed. This is how new fields get found and verified; it never writes to your card.
