@@ -111,7 +111,11 @@ def test_usa_slots_decode_exactly(usa):
     assert s[0].party == [(6, 98), (7, 99), (8, 99)]
     assert s[1].party == [(7, 99), (8, 99), (6, 98)]
     assert s[2].party == [(8, 99), (7, 99), (6, 98)]
-    assert s[0].partner_name == "Kumamon"
+    # 0x18 is NOT a digimon partner. The decomp reads it as the save's AREA
+    # index (stgmcard.c:167 TEXT_AREA_NAMES[save->unk18]); 0x1C is its SHOP
+    # index (:168). The old "Kumamon" expectation came from the withdrawn
+    # "USA party ids 1..8" guess.
+    assert s[0].partner_id == 2  # area index, not a partner id
 
 
 def test_eur_has_only_first_slot_used(eur):
@@ -126,20 +130,23 @@ def test_eur_has_only_first_slot_used(eur):
     assert s[0].partner_name == "Agumon"
 
 
-def test_usa_party_ids_are_decomp_space(usa):
-    # USA (v3) party field uses decomp ids directly: 6/7/8 = Guilmon/
-    # Renamon/Patamon (this is the genuine DexDrive sample, unedited).
+def test_usa_party_ids_use_the_same_unlocked_space_as_eur(usa):
+    # USA and EUR store a party member the SAME way: the decomp's
+    # Partner.unlocked = partner index + 3 (stgmcard.c:1106; game_state.h:193),
+    # so raw 6/7/8 = Agumon/Veemon/Guilmon on BOTH regions. The withdrawn
+    # "USA = decomp ids 1..8" guess is corrected here (2026-10-05).
     names = {TABLES.party_name(i, "USA") for i, _ in usa.slots[0].party}
-    assert names == {"Guilmon", "Renamon", "Patamon"}
+    assert names == {"Agumon", "Veemon", "Guilmon"}
     assert usa.slots[0].party_text == (
-        "Guilmon Lv98, Renamon Lv99, Patamon Lv99"
+        "Agumon Lv98, Veemon Lv99, Guilmon Lv99"
     )
 
 
-def test_eur_party_ids_are_shifted_plus_two(eur):
-    # EUR (v4) party field is decomp id + 2: 6/7/8 = Agumon/Veemon/Guilmon.
-    # Confirmed by the user's in-game read of a card with raw ids 6/7/8 and
-    # by the user seeing Kotemon at raw id 3 (ids 1-2 render empty/invalid).
+def test_eur_party_ids_use_the_partner_unlocked_space(eur):
+    # EUR and USA share the party-id space (no region shift): raw 6/7/8 =
+    # Agumon/Veemon/Guilmon via Partner.unlocked = index + 3. Confirmed by the
+    # user's in-game read of a card with raw ids 6/7/8, and consistent with the
+    # user seeing Kotemon at raw id 3 (0..2 invalid).
     names = {TABLES.party_name(i, "EUR") for i, _ in eur.slots[0].party}
     assert names == {"Agumon", "Veemon", "Guilmon"}
 
@@ -406,16 +413,17 @@ def test_money_bounds_enforced(usa):
 
 
 def test_digimon_injection_round_trips(usa):
-    """Inject Guilmon (USA party id 6) at level 99 into slot 0, position 0.
+    """Inject Agumon (party-space id 6) at level 99 into slot 0, position 0.
 
-    Party slots accept ONLY the 8 base rookies. USA uses decomp ids 1..8,
-    EUR uses +2 (3..10); writing evolved/enemy ids stalls the game on load
-    (confirmed by the user's EUR card edit).
+    Party slots accept ONLY the 8 base rookies, id 3..10 on BOTH regions
+    (Kotemon..Patamon; see the party-space note in save.py). Writing
+    evolved/enemy ids stalls the game on load (confirmed by the user's EUR
+    card edit).
     """
     usa.set_party_member(0, 0, 6, 99)
     again = DMW3Save(usa.to_bytes())
     assert again.slots[0].party[0] == (6, 99)
-    assert again.slots[0].party_text.startswith("Guilmon")
+    assert again.slots[0].party_text.startswith("Agumon")
     assert again.checksum_valid
 
 
@@ -427,12 +435,14 @@ def test_party_rejects_evolved_digimon_ids(usa):
         usa.set_party_member(0, 0, omnimon, 99)
     with pytest.raises(SaveError, match="base rookies"):
         usa.set_partner(0, omnimon)
-    # 0 (empty) is never a valid party member id, and USA ids are 1..8, so
-    # id 0 and id 9+ must be refused on a USA save.
+    # 0 (empty) is never a valid party member id. The party space is 3..10 on
+    # BOTH regions, so 0/2 and 11+ must be refused on a USA save too.
     with pytest.raises(SaveError):
         usa.set_party_member(0, 0, 0, 99)
     with pytest.raises(SaveError):
-        usa.set_partner(0, 9)
+        usa.set_party_member(0, 0, 2, 99)
+    with pytest.raises(SaveError):
+        usa.set_partner(0, 11)
     # the failed writes must not have touched the buffer
     assert usa.slots[0].party[0][0] != omnimon
 
@@ -458,7 +468,10 @@ def test_unknown_digimon_id_rejected(usa):
 
 
 def test_partner_and_play_time_round_trip(usa):
-    usa.set_partner(0, 2)          # Kumamon (USA party id 2)
+    # NOTE: the "partner" field at 0x18 is mislabelled — the decomp reads it
+    # as the save's AREA index (stgmcard.c:167), not a digimon. This still
+    # round-trips a value in the party-id band 3..10.
+    usa.set_partner(0, 4)          # party-space id 4 = Kumamon
     usa.set_play_time(0, 12, 34, 56)
     again = DMW3Save(usa.to_bytes()).slots[0]
     assert again.partner_name == "Kumamon"

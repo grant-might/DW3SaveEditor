@@ -190,23 +190,32 @@ DV_FORM_MARKER_NAMES = {  # reverse of DV_FORM_MARKERS (marker -> form name)
     v: k for k, v in DV_FORM_MARKERS.items()
 }
 
-# PARTY/partner-ID space (CONFIRMED 2026-09-02 by live card tests).
-# The party-position fields and the partner field do NOT use digimon_id.rs
-# ids directly — and the offset is REGION-DEPENDENT:
-#   USA (v3): ids 1..8  = Kotemon..Patamon (decomp enum; USA partner=2 in the
-#             genuine DexDrive sample = Kumamon)
-#   EUR (v4): ids 3..10 = Kotemon..Patamon (+2 shift). Evidence from the
-#             user's live EUR card: 6/7/8 in party showed Agumon/Veemon/
-#             Guilmon in-game; 1/2/3 showed EMPTY/EMPTY/Kotemon (1-2 invalid);
-#             partner byte 6 showed Agumon as the map partner. Writing
-#             evolved/enemy ids (>10) stalled the game on load.
-# 0 = empty; evolved forms are battle-DV mechanics, never stored here.
-PARTY_MIN_BY_REGION = {"USA": 1, "EUR": 3}
-PARTY_ROOKIE_IDS = (1, 2, 3, 4, 5, 6, 7, 8)   # names == DIGI_ROSTER_NAMES
+# PARTY/partner-ID space — REGION-INDEPENDENT (corrected 2026-10-05).
+# The save record's partner fields hold the decomp's Partner.unlocked value:
+# partner_index + 3, where 0 = empty/locked. CONFIRMED against the
+# decompilation of BOTH releases (the code is shared, not #if-gated):
+#   stgmcard.c:1106  save->partners[i] = dataBuf->partners[member].unlocked;
+#   game_state.h:193  s32 unlocked; /* partner id + 3, 0 while locked */
+#   stgmcard.c:200/293/305  the save-list UI indexes its partner
+#                    sprites/animations by (partners[i] - 3)
+# So a live party member is id 3..10 == Kotemon..Patamon on the USA AND the
+# EUR card alike. The USA/EUR save+load path is identical here — only the
+# MEMCARD_SAVE_VERSION byte (3 vs 4) differs between the regions.
+# EVIDENCE: both live cards (Builds/USA/card1.mcd, Builds/EUR/card1.mcd) hold
+# the same raw partners[3] = [4, 8, 10] -> Kumamon, Guilmon, Patamon. The
+# previous "USA = 1..8" guess decoded that same card as Agumon/Patamon/
+# Invalid #10. 0 = empty; evolved forms are battle-DV mechanics, never stored
+# in these fields.
+PARTY_MIN_BY_REGION = {"USA": 3, "EUR": 3}
+PARTY_ROOKIE_IDS = (3, 4, 5, 6, 7, 8, 9, 10)   # names == DIGI_ROSTER_NAMES
 
 
 def party_min_for_region(region: str) -> int:
-    """First valid party-space id for a region (USA=1, EUR=3)."""
+    """First valid party-space id (3). The space is region-INDEPENDENT.
+
+    Kept as a region-keyed lookup so the id space stays in one place, but the
+    decomp shows USA and EUR store Partner.unlocked = index + 3 identically.
+    """
     return PARTY_MIN_BY_REGION.get(region, PARTY_MIN_BY_REGION["USA"])
 
 KEY_ITEM_COUNT = (
@@ -467,10 +476,11 @@ class IdTables:
     def base_rookie_choices(self, region: str = "USA") -> list[tuple[int, str]]:
         """The 8 base-stage partner digimon for party/partner fields.
 
-        Returns REGION-SPECIFIC ids: USA=1..8, EUR=3..10 (Kotemon..Patamon).
-        CONFIRMED 2026-09-02 by live EUR card tests (6/7/8 -> Agumon/
-        Veemon/Guilmon, 3 -> Kotemon, 1-2 invalid) and the genuine USA
-        sample (partner id 2 = Kumamon). Evolved/enemy ids stall the game.
+        Ids are 3..10 == Kotemon..Patamon (the decomp's Partner.unlocked =
+        index + 3), the SAME on USA and EUR (stgmcard.c:1106; game_state.h:193).
+        Confirmed by live in-game reads (6/7/8 -> Agumon/Veemon/Guilmon,
+        3 -> Kotemon; 0..2 invalid) and by both live cards. Evolved/enemy ids
+        stall the game on load.
         """
         pmin = party_min_for_region(region)
         return [(pmin + i, DIGI_ROSTER_NAMES[i]) for i in range(8)]
@@ -517,7 +527,7 @@ class Slot:
 
     @property
     def partner_name(self) -> str:
-        # Party-space id is region-specific (USA 1..8, EUR 3..10).
+        # Party-space id (3..10 = Kotemon..Patamon); same on both regions.
         return TABLES.party_name(self.partner_id, self.region)
 
     @property

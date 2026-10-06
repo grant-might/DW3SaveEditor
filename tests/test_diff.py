@@ -18,7 +18,8 @@ from dmw3editor.core import memcard as mc
 from dmw3editor.core.save import DMW3Save
 from dmw3editor.core import diff as diffmod
 
-SAMPLES = pathlib.Path(r"D:\AGENT\DMW3SaveEditor\samples")
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+SAMPLES = ROOT / "samples"
 USA = SAMPLES / "USA_save.bin"
 
 
