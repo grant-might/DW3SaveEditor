@@ -30,7 +30,7 @@ from dmw3editor.paths import writable_dir
 PALETTES: dict[str, dict] = {
     # --- default: Kumamon's hat blue main + Agumon yellow accent -----------
     "digimon-blue": {
-        "label": "Digimon Blue",
+        "label": "Kumamon",
         "tag": "Kumamon blue + Agumon yellow",
         "dark": True,
         # base surfaces
@@ -71,7 +71,7 @@ PALETTES: dict[str, dict] = {
     },
     # --- black main + Guilmon red accent -----------------------------------
     "guilmon-black": {
-        "label": "Guilmon Black",
+        "label": "Guilmon",
         "tag": "Black + Guilmon red",
         "dark": True,
         "BG": "#0d0d10",
@@ -108,7 +108,7 @@ PALETTES: dict[str, dict] = {
     # The key stays `eggshell-green`: a saved theme that no longer matches a key falls back to the
     # default, so renaming the key would quietly forget the player's choice.
     "eggshell-green": {
-        "label": "Terriermon Green",
+        "label": "Terriermon",
         "tag": "Terriermon green",
         "dark": False,
         "BG": "#f4f0e6",
@@ -143,7 +143,7 @@ PALETTES: dict[str, dict] = {
     },
     # --- Beelzemon indigo main + pearl white accent ------------------------
     "beelzemon-purple": {
-        "label": "Beelzemon Purple",
+        "label": "Beelzemon",
         "tag": "Indigo + pearl accent",
         "dark": True,
         "BG": "#201742",
@@ -178,7 +178,7 @@ PALETTES: dict[str, dict] = {
     },
     # --- Gargomon green main + semi-transparent gold accent ----------------
     "gargomon-green": {
-        "label": "Gargomon Green",
+        "label": "Gargomon",
         "tag": "Green + gold accent",
         "dark": True,
         "BG": "#17371f",
