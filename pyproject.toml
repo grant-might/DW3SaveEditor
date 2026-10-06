@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dmw3editor"
-version = "0.1.0"
+version = "0.1.1"
 description = "A save editor for Digimon World 3 (PS1) — edits party Digimon, levels, partner, Bits and play time on raw / DexDrive / VGS / VMP memory cards."
 readme = "README.md"
 requires-python = ">=3.10"
