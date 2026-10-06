@@ -1,0 +1,6 @@
+# Pinned to the versions in the bundled .venv (see docs/USAGE.md for setup).
+PySide6==6.11.2
+PySide6_Addons==6.11.2
+PySide6_Essentials==6.11.2
+numpy==2.5.2
+pytest==9.1.1

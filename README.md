@@ -64,6 +64,21 @@ Download the latest release from the **Releases** page on this repository. Grab 
 
 DuckStation users: the app can open the `.mcr` card file DuckStation keeps in its memcards folder directly.
 
+## Running from source
+
+The code is in `dmw3editor/`. With Python 3.10 or newer on Windows:
+
+```
+python -m venv .venv
+.venv\Scriptsctivate
+pip install -r requirements.txt
+python dmw3_save_editor.py
+```
+
+The tests run with `python run_tests.py` or `pytest`, and use the card images in `samples/`.
+
 ## License
 
-This repository is **not open source**. All rights are reserved. A license for use of the code or assets in your own projects is not granted by downloading or using this tool. We plan to open the project later under a license that requires attribution and shares in any commercial use; that decision will be announced here when it happens.
+The full license is in [LICENSE.md](LICENSE.md). In short: use it, change it and share it for free for anything noncommercial, personal or educational. If you pass it on, send your changes back to this project first, and pass the same license on with it. Commercial use needs a paid license from the author, which you can ask about on this repository.
+
+The source is published so you can read exactly what the app does to your save before trusting it with one.
