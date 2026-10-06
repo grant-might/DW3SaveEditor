@@ -70,10 +70,12 @@ The code is in `dmw3editor/`. With Python 3.10 or newer on Windows:
 
 ```
 python -m venv .venv
-.venv\Scriptsctivate
+.venv\Scripts\activate
 pip install -r requirements.txt
 python dmw3_save_editor.py
 ```
+
+In PowerShell, activate with `.venv\Scripts\Activate.ps1` instead.
 
 The tests run with `python run_tests.py` or `pytest`, and use the card images in `samples/`.
 
