@@ -47,7 +47,7 @@ def test_single_money_change_isolates_only_money_plus_checksum(record):
     d = diffmod.diff_payloads(before, after)
     # d[0] is the payload header (slot -1), slots follow at d[1..3]
     header = d[0]
-    assert {dl.known_as for dl in header.known} == {"payload.checksum (u16)"}
+    assert {dl.known_as for dl in header.known} == {"payload.checksum (u8)"}
     slot0 = d[1]
     # Money + the recomputed checksum are the only differences.
     labels = {dl.known_as for dl in slot0.known}
@@ -70,7 +70,7 @@ def test_single_party_change_isolates_party_fields_only(record):
     # each as its own precise field.
     assert labels == {"slot2.party[0].id (u32)", "slot2.party[0].level (u16)"}, labels
     assert not slot1.unknown
-    assert {dl.known_as for dl in d[0].known} == {"payload.checksum (u16)"}
+    assert {dl.known_as for dl in d[0].known} == {"payload.checksum (u8)"}
 
 
 def test_format_report_contains_known_labels():
@@ -80,4 +80,4 @@ def test_format_report_contains_known_labels():
     after = rec.to_bytes()
     report = diffmod.format_report(diffmod.diff_payloads(before, after))
     assert "slot1.money (u32)" in report
-    assert "payload.checksum (u16)" in report
+    assert "payload.checksum (u8)" in report

@@ -14,9 +14,20 @@ _PKG = "dmw3editor"
 
 
 def _bundle_root() -> pathlib.Path:
-    """Top of the app bundle: _MEIPASS when frozen, project root otherwise."""
+    """Top of the app bundle: _MEIPASS when the package is bundled under it, project root else.
+
+    The frozen branch is correct for this project's OWN PyInstaller build, which ships
+    ``dmw3editor/{assets,data}`` under ``sys._MEIPASS``. It is wrong when the package is imported
+    live into a frozen HOST: the DW3 launcher embeds this editor as its Memory Card tab and puts
+    this tree on ``sys.path``, so ``sys.frozen`` is the LAUNCHER's and ``_MEIPASS`` has no
+    ``dmw3editor/`` at all. Every asset lookup then resolved to a missing path, its pixmaps came
+    back null, and ``assets.scaled`` logged "Pixmap is a null pixmap" once per roster tile.
+    Detect that case and resolve against the source tree this file actually lives in.
+    """
     if getattr(sys, "frozen", False):  # PyInstaller sets sys.frozen
-        return pathlib.Path(sys._MEIPASS)  # noqa: SLF001
+        base = pathlib.Path(sys._MEIPASS)  # noqa: SLF001
+        if (base / _PKG).is_dir():
+            return base
     return pathlib.Path(__file__).resolve().parent.parent
 
 

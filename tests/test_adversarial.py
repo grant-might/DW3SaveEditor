@@ -17,13 +17,20 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from dmw3editor.core import checksum as ck
 from dmw3editor.core import memcard as mc
 from dmw3editor.core.save import (
+    DATA_SECTION_OFFSETS,
+    DIGI_STAT_BASE_REL,
+    DIGI_STAT_STRIDE,
     DMW3Save,
+    D_LEVEL,
+    D_UNLOCK,
+    GS_PARTY,
     LEVEL_MAX,
     MONEY_MAX,
     PARTY_SIZE,
     SLOT_OFFSETS,
     TABLES,
     SaveError,
+    party_index_for_id,
     party_min_for_region,
 )
 
@@ -252,8 +259,9 @@ def test_fuzzed_edit_sequences_preserve_every_invariant():
                 expected[("money", slot)] = v
             elif choice == 1:
                 pos = rng.randrange(PARTY_SIZE)
-                # Party slots accept only the 8 base rookies, region-specific
-                # (USA 1-8, EUR 3-10; Kotemon..Patamon).
+                # Party slots accept only the 8 base rookies, ids 3..10 on
+                # BOTH regions (id = index + 3; the space is region-independent,
+                # see the party-space note in save.py).
                 pmin = party_min_for_region(save.region_guess)
                 did = rng.randrange(pmin, pmin + 8)
                 lv = rng.randint(1, LEVEL_MAX)
@@ -295,7 +303,9 @@ def test_edits_never_touch_bytes_outside_their_field():
         slot = rng.randrange(len(SLOT_OFFSETS))
         base = SLOT_OFFSETS[slot]
         field, size = rng.choice([(0x20, 4), (0x18, 4), (0x30, 4), (0x3C, 2)])
+        party_member = False
         if size == 4 and field in (0x18, 0x30):
+            party_member = field == 0x30
             save_fn = (
                 (lambda: save.set_partner(slot, 6))
                 if field == 0x18
@@ -304,18 +314,30 @@ def test_edits_never_touch_bytes_outside_their_field():
         elif field == 0x20:
             save_fn = lambda: save.set_money(slot, 4242)  # noqa: E731
         else:
+            party_member = True
             save_fn = lambda: save.set_party_member(slot, 0, 6, 55)  # noqa: E731
         save_fn()
 
         out = save.to_bytes()
         changed = {i for i in range(len(original)) if original[i] != out[i]}
-        # set_party_member writes both an id (4B) and a level (2B).
+        # set_party_member writes the summary id (4B) + level (2B) AND, when the
+        # slot's data section is writable, the authoritative data-section party
+        # (index 4B), the partner's unlocked id (4B) and its STAT_LEVEL (2B).
         allowed = (
             set(range(base + 0x30, base + 0x34))
             | set(range(base + 0x3C, base + 0x3E))
             | set(range(base + field, base + field + size))
             | checksum_bytes
         )
+        if party_member and save.party_data_written(slot):
+            ds = DATA_SECTION_OFFSETS[slot]
+            idx = party_index_for_id(6, save.region_guess)
+            party_off = ds + GS_PARTY
+            partner_off = ds + DIGI_STAT_BASE_REL + idx * DIGI_STAT_STRIDE
+            allowed |= set(range(party_off, party_off + 4))
+            allowed |= set(range(partner_off + D_UNLOCK, partner_off + D_UNLOCK + 4))
+            allowed |= set(range(partner_off + D_LEVEL, partner_off + D_LEVEL + 2))
+            allowed.add(ds)  # data-section checksum byte (chunk 2)
         assert changed <= allowed, [hex(x) for x in sorted(changed - allowed)]
 
 

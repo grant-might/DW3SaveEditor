@@ -50,7 +50,7 @@ def test_field_locator_isolates_single_action(tmp_path):
 
     text = w.out.toPlainText()
     assert "slot1.money (u32)" in text
-    assert "payload.checksum (u16)" in text
+    assert "payload.checksum (u8)" in text
     # The unchanged save must not have been modified by the locator.
     assert before.read_bytes() == SRC.read_bytes()
 
@@ -82,4 +82,4 @@ def test_diff_cli(tmp_path):
     )
     assert res.returncode == 0, res.stderr
     assert "slot1.money (u32)" in res.stdout
-    assert "payload.checksum (u16)" in res.stdout
+    assert "payload.checksum (u8)" in res.stdout

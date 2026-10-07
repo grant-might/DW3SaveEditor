@@ -1,5 +1,12 @@
 # DMW3 Save Format (AUTHORITATIVE)
 
+> **2026-10-06: the card/container layout, the `MemCardFile`/`MemCardSave`
+> header and BOTH checksums were re-derived from the matching decompilation.
+> See `docs/MEMCARD_FORMAT.md` — it is now the reference for those parts and
+> corrects the record-header and chunk-extent notes below. The sections after
+> "Three in-game save slots" remain the field inventory (items, cards, key
+> items, per-Digimon stats, DV).**
+
 Current as of 2026-09-03. Verified against the two sample cards
 (`samples/USA_dexdrive.gme`, `samples/EUR_raw.mcr`), controlled in-game diffs,
 and the official decompilation (`github.com/markisha64/ddw3`). This document
@@ -17,30 +24,38 @@ The constants below live in `dmw3editor/core/save.py` and
   `BESLES-03936DMW3-EUR`.
 - `.gme` (DexDrive) = 3904-byte header + raw card. `.vgs`/`.vmp` handled too.
 - Payload 0x0000-0x01FF = PS1 title frame (`SC` magic, Shift-JIS title, icons).
-- Region = format version u16 at 0x0202 (3 = USA, 4 = EUR). The editor
-  supports USA and EUR saves only.
+- Region = format version **u8** at 0x0202 (3 = USA, 4 = EUR). The editor
+  supports USA and EUR saves only. The file is `0x200` header + `0x100` info
+  section + three `0x2700` data sections — see `docs/MEMCARD_FORMAT.md` §2.
 
-## Checksums — TWO chunks (CONFIRMED)
+## Checksums — TWO chunks, XOR8, ONE BYTE each (corrected 2026-10-06)
 
-The save is chunked. Both chunks use the same XOR8 algorithm.
+The save is chunked. Both chunks use the same XOR8 algorithm and each stored
+checksum is a single byte (the game's `computeChecksum` returns `u8`).
 
 | Chunk | Header | Checksum covers | Recompute after |
 |---|---|---|---|
-| 1 | u16 LE @ 0x0200 | bytes [0x0204, 0x0300) | any edit in [0x0204, 0x0300) |
-| 2 | u16 LE @ 0x0300 | bytes [0x0304, 0x29C4) | any edit in [0x0304, 0x29C4) |
+| 1 (info section) | u8 @ 0x0200 | bytes [0x0204, 0x02D4) | any edit in [0x0204, 0x02D4) |
+| 2 (data section 0) | u8 @ 0x0300 | bytes [0x0304, end) | any edit in [0x0304, end) |
 
-- Chunk 2 verified on three independent cards: USA stored 0x8C, EUR-before
-  0x49, EUR-after-item-buy 0xBD. All three equal XOR8 over [0x0304, 0x29C4).
-- 0x0302 holds chunk 2's format word (version-like), mirroring chunk 1's.
-- Everything the editor edits lives in one of these two ranges, so
-  `to_bytes()` calls `recompute_all()`: chunk 1, then chunk 2, unconditionally.
+`end` is region-specific: **0x29BC on USA, 0x29C4 on EUR** (`GAME_SAVE_SIZE`
+0x26BC vs 0x26C4, `stgmcard.h`). The old note used 0x29C4 for both, which fails
+(and would rewrite) a live USA card whose [0x29BC, 0x29C4) bytes are non-zero —
+the live USA card stores 0xBA, correct only for 0x29BC. The old "u16" was also
+wrong: the checksum occupies one byte and the u16 write zeroed `last` (0x0201).
+`checksum.py` now writes one byte each and picks `end` from the payload version.
+See `docs/MEMCARD_FORMAT.md` §7.
 
-## Record header at 0x0200 (CONFIRMED)
+## Record header at 0x0200 (corrected 2026-10-06)
+
+`MemCardFile` (`stgmcard.h:90-97`) — five single-byte/word fields, not a u16 pair:
 
 | Offset | Type | Meaning |
 |---|---|---|
-| 0x0200 | u16 LE | chunk 1 checksum (XOR8 of [0x0204, 0x0300)) |
-| 0x0202 | u16 LE | format version: USA = 3, EUR = 4 |
+| 0x0200 | u8 | info-section checksum (XOR8 of [0x0204, 0x02D4)) |
+| 0x0201 | u8 | `last` — the slot last saved to (0..2) |
+| 0x0202 | u8 | format version: USA = 3, EUR = 4 |
+| 0x0203 | u8 | `unk3` (0 on both regions) |
 | 0x0204 | char[4] | ASCII `DMW3` (validity tag, occurs exactly ONCE) |
 
 ## Three in-game save slots at 0x0208 / 0x024C / 0x0290 (CONFIRMED)
@@ -54,8 +69,8 @@ zeroes = empty.
 | Offset | Type | Field |
 |---|---|---|
 | +0x00 | u8[8] | slot/player name area (field data, not a signature) |
-| +0x18 | u32 | partner Digimon id |
-| +0x1C | u32 | unknown (USA 0x2C=44, EUR 0x34=52) |
+| +0x18 | u32 | save's AREA index (decomp stgmcard.c:167) — NOT a partner |
+| +0x1C | u32 | save's SHOP index (decomp stgmcard.c:168) |
 | +0x20 | u32 | money / Bits (cap 9,999,999) |
 | +0x28 | u16 | play time hours |
 | +0x2A | u16 | play time minutes |
@@ -69,8 +84,22 @@ zeroes = empty.
 
 Party ids are positionally paired with levels (USA reorders ids to 7,8,6 and
 levels to 99,99,98 in lockstep). Party slots accept only the 8 base rookies;
-the id base differs by region: USA ids 1..8, EUR ids 3..10
-(`PARTY_MIN_BY_REGION`).
+the id space is **region-INDEPENDENT**: id 3..10 = Kotemon..Patamon on both
+regions, because the record stores the decomp's `Partner.unlocked` value
+(`= partner index + 3`; stgmcard.c:1106, game_state.h:193). 0 = empty/locked.
+(An earlier "USA ids 1..8" note was wrong and decoded USA cards shifted.)
+Note +0x18 is NOT the partner: it is the save's AREA-name index.
+
+**Editor / in-game status (2026-10-06, corrected).** These `+0x30` fields are the
+info-section **summary** copy of the party, and the game does NOT run the party
+from them — it loads the data section (`stgmcard.c:1027`). The summary stores
+ids (`Partner.unlocked`, 3..10); the data-section `GameState.party[3]` at
+payload `0x0370` stores indices (0..7). A party swap that writes only the
+summary changes the card list but leaves the loaded party untouched — the
+reported bug. `DMW3Save.set_party_member` now writes **both** copies (summary
+id + level, data index + `Partner.unlocked` + `STAT_LEVEL`). See
+`docs/MEMCARD_FORMAT.md` §5.2 for the decomp citations and the byte-level
+evidence.
 
 ## Key items — 48 flags (CONFIRMED 2026-09-02)
 
