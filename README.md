@@ -1,5 +1,7 @@
 # Digimon World 3 Save Editor
 
+Join our discord server for community forum, assistance, to make suggestions, etc. https://discord.gg/rJv3uVsgx
+
 Edit your Digimon World 3 (PlayStation 1) memory card saves from your PC. No console hacking, no cheat devices, no hex editing required. Open a card, change what you want, save, and load it back into your emulator or real memory card.
 
 Works with **USA and EUR** saves. Loads `.mcr`, `.mcd`, `.mc`, `.bin`, `.gme` (DexDrive), `.vgs`, and `.vmp` card images. Every edit goes through a real checksum recompute, so the game reads the card as valid. A backup of your original file is created automatically before the first save, and nothing is written to disk until you press Save.
